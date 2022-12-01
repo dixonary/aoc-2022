@@ -7,14 +7,11 @@ import Data.List
 --------------------------------------------------------------------------------
 -- DAY 01
 
-newtype Day01 = Day01 [Integer]
-instance From String Day01 where 
-  from = Day01 . reverse . sort 
-       . map (sum . map read . lines) 
-       . splitOn "\n\n"
+parse01 :: String -> [Integer]
+parse01 = reverse . sort . map (sum . map read . lines) . splitOn "\n\n"
 
-day01a :: Day01 -> Integer
-day01a (Day01 cs) = head cs
+day01a :: [Integer] -> Integer
+day01a = head
 
-day01b :: Day01 -> Integer
-day01b (Day01 cs) = sum $ take 3 cs
+day01b :: [Integer] -> Integer
+day01b = sum . take 3

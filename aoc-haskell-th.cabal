@@ -13,7 +13,8 @@ executable aoc
         template-haskell,
         witch,
         containers,
-        split
+        split,
+        string-interpolate
         
     other-modules:
         Aoc
@@ -23,6 +24,7 @@ executable aoc
 
     default-extensions:
         TemplateHaskell,
+        QuasiQuotes,
         OverloadedStrings, 
         OverloadedLists,
         LambdaCase,

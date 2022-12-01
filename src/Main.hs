@@ -15,6 +15,8 @@ import Data.Bool
 import Control.Exception
 import Data.Either
 
+import Data.String.Interpolate
+
 main :: IO ()
 main = do
   args <- getArgs
@@ -32,28 +34,41 @@ main = do
           runDay day Nothing
 
 
-data AocPart = forall a b . (AocFrom a, AocTo b) => AocPart (a -> b)
-
-class AocTo a where aocTo :: a -> String
-class AocFrom a where aocFrom :: String -> a
-  
-instance From a String => AocTo a   where aocTo   = from
-instance From String a => AocFrom a where aocFrom = from
+data AocPart = forall b . (From b String) => 
+    AocPart (String -> b) 
+  | NoParser 
+  | NoPart
 
 instance From String Integer where from = read
 instance From Integer String where from = show
 
+-- Needed to get around limitations of quasiquoters
+toString :: From b String => b -> String
+toString = from
+
+
 allParts :: Map (Integer, String) AocPart
 allParts = Map.fromList $(do
     let
-      lpad n str = let s = show str in replicate (n - length s) '0' ++ s 
+      lpad n str = let s = show str in replicate (n - length s) '0' ++ s
+
 
       allPairs :: [(Integer, String)] -> Q [Q Exp]
       allPairs [] = pure []
       allPairs ((n,p):rest) = do
-        lookupValueName ("Aoc.day" ++ (lpad 2 n) ++ p) >>= \case
-          Nothing -> allPairs rest
-          Just f' -> ([| ((n,p), AocPart $(varE f')) |] :) <$> allPairs rest
+          
+        parser <- lookupValueName ("Aoc.parse" ++ lpad 2 n)
+        part   <- lookupValueName ("Aoc.day" ++ (lpad 2 n) ++ p)
+
+        rest <- allPairs rest
+
+        let 
+          cur = case (parser,part) of
+            (Nothing,_)      -> ([| ((n,p), NoParser) |])
+            (Just r,Nothing) -> ([| ((n,p), NoPart) |])
+            (Just r, Just t) -> ([| ((n,p), AocPart ($(varE t) . $(varE r))) |])
+        
+        pure (cur:rest)
                 
     listE =<< allPairs [ (x,y) | x <- [1..25], y <- ["a","b"] ]
   )
@@ -69,11 +84,12 @@ runDay day part = do
       ((\e -> pure Nothing) :: IOException -> IO (Maybe String))
 
     runPart :: String -> String -> IO ()
-    runPart p i = do
-      case Map.lookup (day, p) allParts of
-        Nothing -> putStrLn $ "No part " ++ p ++ " for day " ++ lpad 2 day
-        Just (AocPart f) -> do
-          putStrLn $ "Part " ++ p ++ ": " ++ aocTo (f (aocFrom i))
+    runPart p input = do
+      putStrLn $ case Map.lookup (day, p) allParts of
+        Nothing          -> [i|Could not find day #{lpad 2 day} in data|]
+        Just NoParser    -> [i|No parser for day #{lpad 2 day}|]
+        Just NoPart      -> [i|No part #{p} for day #{lpad 2 day}|]
+        Just (AocPart f) -> [i|Part #{p}: #{toString (f input)}|]
 
   input <- readFileM $ "input/day" ++ lpad 2 day
 
