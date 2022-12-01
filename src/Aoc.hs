@@ -10,7 +10,7 @@ import Data.List
 newtype Day01 = Day01 [Integer]
 instance From String Day01 where 
   from = Day01 . reverse . sort 
-       . map (sum . map read . splitOn "\n") 
+       . map (sum . map read . lines) 
        . splitOn "\n\n"
 
 day01a :: Day01 -> Integer
