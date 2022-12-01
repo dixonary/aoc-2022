@@ -5,44 +5,18 @@ version:            0.1.0.0
 author:             Alex Dixon
 maintainer:         alex@dixonary.co.uk
 
-library
-    hs-source-dirs:   src
-
-    build-depends:
-        base ^>=4.17.0.0,
-        witch,
-        containers
-
-    exposed-modules:
-        Aoc
-
-    default-extensions:
-        TemplateHaskell,
-        OverloadedStrings, 
-        OverloadedLists,
-        LambdaCase,
-        RecordWildCards,
-        TupleSections,
-        ScopedTypeVariables,
-        TypeApplications,
-        FlexibleContexts,
-        ExistentialQuantification,
-        FlexibleInstances,
-        MultiParamTypeClasses,
-        UndecidableInstances,
-        MonoLocalBinds,
-        UnicodeSyntax
-
-
 executable aoc
     main-is:          Main.hs
 
     build-depends:
         base ^>=4.17.0.0,
-        aoc-haskell-th,
         template-haskell,
         witch,
-        containers
+        containers,
+        split
+        
+    other-modules:
+        Aoc
 
     hs-source-dirs:   src
     default-language: Haskell2010
