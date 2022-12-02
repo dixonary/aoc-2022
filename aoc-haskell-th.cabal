@@ -14,7 +14,8 @@ executable aoc
         witch,
         containers,
         split,
-        string-interpolate
+        string-interpolate,
+        finite-typelits
         
     other-modules:
         Aoc
