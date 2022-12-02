@@ -35,4 +35,4 @@ day02a :: [(RPS,RPS)] -> Integer
 day02a = sum . map (\(x,y) -> getFinite y + 1 + getFinite (y-x+1) * 3)
 
 day02b :: [(RPS,RPS)] -> Integer
-day02b = sum . map (\(x,y) -> getFinite (x+y+2) + 1 + getFinite y * 3)
+day02b = sum . map (\(x,y) -> getFinite (x+y-1) + 1 + getFinite y * 3)
