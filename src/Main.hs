@@ -7,8 +7,6 @@ import Language.Haskell.TH
 import Control.Monad (replicateM)
 import Data.Char (isDigit)
 import Witch
-import Data.Map (Map)
-import qualified Data.Map as Map
 
 import Data.Maybe
 import Data.Bool
@@ -16,6 +14,9 @@ import Control.Exception
 import Data.Either
 
 import Data.String.Interpolate
+
+import Data.Map qualified as Map
+import Data.Map (Map)
 
 main :: IO ()
 main = do
@@ -41,6 +42,8 @@ data AocPart = forall b . (From b String) =>
 
 instance From String Integer where from = read
 instance From Integer String where from = show
+instance From String Int where from = read
+instance From Int String where from = show
 
 -- Needed to get around limitations of quasiquoters
 toString :: From b String => b -> String
