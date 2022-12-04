@@ -102,4 +102,4 @@ day04a = length . filter
 
 day04b :: [((Integer,Integer),(Integer,Integer))] -> Int
 day04b = length . filter 
-  (\((a,b),(x,y)) -> (a>=x&&a<=y) || (b>=x&&b<=y) || (a <= x && b >= y))
+  (\((a,b),(x,y)) -> (a>=x&&a<=y) || (b>=x&&b<=y) || (a<=x && b>=y))
