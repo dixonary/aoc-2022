@@ -1,5 +1,8 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE BlockArguments #-}
 module Aoc where
+
+import Prelude hiding (takeWhile)
 
 import Witch ( From(..) )
 
@@ -9,19 +12,29 @@ import Data.Char (ord)
 import Data.Finite ( getFinite, Finite )
 
 import Data.List.Split ( splitOn, chunksOf )
-import Data.List ( intersect, singleton, sort )
+import Data.List ( intersect, singleton, sort, transpose )
 
 import Data.Set qualified as Set
 import Data.Set (Set)
 
+import Data.Map qualified as Map
+import Data.Map (Map)
+
 import Data.Text qualified as Text
 import Data.Text (Text)
 
-import Data.Attoparsec.Text hiding (take)
-import Control.Applicative.Combinators ()
+import Data.Attoparsec.Text hiding (take, sepBy, sepBy1, count)
+import Control.Applicative.Combinators
+    ( (<|>), count, sepBy, sepBy1 )
+import Data.Char (isUpper)
 import Utils.Parsers
 
-import Data.Function (on)
+import Data.Functor
+import Data.Foldable
+import Data.Function 
+import Control.Applicative
+
+import Data.Maybe
 
 
 --------------------------------------------------------------------------------
@@ -92,9 +105,8 @@ day03b = sum . map (priority . Set.findMin . foldr1 Set.intersection)
 --------------------------------------------------------------------------------
 -- DAY 4
 
-parse04 :: String -> [((Integer,Integer),(Integer,Integer))]
-parse04 = either error id . parseOnly p . from
-  where p = decimal `around` char '-' `around` char ',' `sepBy` endOfLine
+parse04 :: Parser [((Integer,Integer),(Integer,Integer))]
+parse04 = decimal `around` char '-' `around` char ',' `sepBy` endOfLine
 
 day04a :: [((Integer,Integer),(Integer,Integer))] -> Int
 day04a = length . filter 
@@ -102,4 +114,31 @@ day04a = length . filter
 
 day04b :: [((Integer,Integer),(Integer,Integer))] -> Int
 day04b = length . filter 
-  (\((a,b),(x,y)) -> (a>=x&&a<=y) || (b>=x&&b<=y) || (a<=x && b>=y))
+  (\((a,b),(x,y)) -> (a>=x&&a<=y) || (b>=x&&b<=y) || (a<=x&&b>=y))
+
+
+--------------------------------------------------------------------------------
+-- DAY 5
+
+type Day05 = (Map Int [Char], [(Int,Int,Int)])
+parse05 :: Parser Day05
+parse05 = let
+  crate = ("[" *> letter <* "]" <&> Just) <|> (count 3 space $> Nothing)
+  line  = liftA3 (,,) ("move "*>decimal) (" from "*>decimal) (" to "*>decimal)
+
+  in do
+  crates <- Map.fromList . zip [1..] . map catMaybes . transpose
+              <$> crate `sepBy` " " `sepBy` endOfLine
+  takeTill (== 'm')
+  lines <- line `sepBy1` endOfLine
+  pure (crates, lines)
+
+doMoves f = foldl' \piles (n,x,y) ->
+  let p = f $ take n $ piles Map.! x
+  in piles & Map.adjust (drop n) x & Map.adjust (p ++) y
+
+day05a :: Day05 -> String
+day05a = map head . Map.elems . uncurry (doMoves reverse)
+
+day05b :: Day05 -> String
+day05b = map head . Map.elems . uncurry (doMoves id)

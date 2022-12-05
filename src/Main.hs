@@ -18,6 +18,8 @@ import Data.String.Interpolate
 import Data.Map qualified as Map
 import Data.Map (Map)
 
+import Data.Attoparsec.Text 
+
 main :: IO ()
 main = do
   args <- getArgs
@@ -45,6 +47,20 @@ instance From Integer String where from = show
 instance From String Int where from = read
 instance From Int String where from = show
 
+--------------------------------------------------------------------------------
+-- Day parsers can be direct functions or an Attoparser Parser
+class IsParser a p where
+  parsePart :: p -> String -> a
+
+instance IsParser a (String -> a) where
+  parsePart p = p
+
+instance IsParser a (Parser a) where
+  parsePart p = either error id . parseOnly p . from
+
+--------------------------------------------------------------------------------
+
+
 -- Needed to get around limitations of quasiquoters
 toString :: From b String => b -> String
 toString = from
@@ -69,7 +85,7 @@ allParts = Map.fromList $(do
           cur = case (parser,part) of
             (Nothing,_)      -> ([| ((n,p), NoParser) |])
             (Just r,Nothing) -> ([| ((n,p), NoPart) |])
-            (Just r, Just t) -> ([| ((n,p), AocPart ($(varE t) . $(varE r))) |])
+            (Just r, Just t) -> ([| ((n,p), AocPart ($(varE t) . parsePart $(varE r))) |])
         
         pure (cur:rest)
                 
