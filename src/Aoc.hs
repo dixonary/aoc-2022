@@ -147,16 +147,16 @@ day05b = map head . Map.elems . uncurry (doMoves id)
 --------------------------------------------------------------------------------
 -- DAY 6
 
-parse06 :: String -> String
-parse06 = id
+parse06 :: String -> Text
+parse06 = from
 
-findSignal :: Int -> String -> Int
+findSignal :: Int -> Text -> Int
 findSignal k = fromJust . findIndex ((==k) . Set.size) 
-             . map (Set.fromList . take k) 
-             . reverse . List.tails . reverse
+             . map (Set.fromList . Text.unpack . Text.takeEnd k) 
+             . Text.inits
 
-day06a :: String -> Int
+day06a :: Text -> Int
 day06a = findSignal 4
 
-day06b :: String -> Int
+day06b :: Text -> Int
 day06b = findSignal 14
