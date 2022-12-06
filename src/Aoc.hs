@@ -12,7 +12,8 @@ import Data.Char (ord)
 import Data.Finite ( getFinite, Finite )
 
 import Data.List.Split ( splitOn, chunksOf )
-import Data.List ( intersect, singleton, sort, transpose )
+import Data.List ( intersect, singleton, sort, transpose, findIndex, nub )
+import Data.List qualified as List 
 
 import Data.Set qualified as Set
 import Data.Set (Set)
@@ -149,13 +150,13 @@ day05b = map head . Map.elems . uncurry (doMoves id)
 parse06 :: String -> String
 parse06 = id
 
-findSignal k cs n (x:xs)
-  | x `elem` cs       = findSignal k (x : until (x `notElem`) init cs) (n+1) xs
-  | length (x:cs) < k = findSignal k (x:cs) (n+1) xs
-  | otherwise         = n
+findSignal :: Int -> String -> Int
+findSignal k = fromJust . findIndex ((==k) . Set.size) 
+             . map (Set.fromList . take k) 
+             . reverse . List.tails . reverse
 
-day06a :: String -> Integer
-day06a = findSignal 4 "" 1
+day06a :: String -> Int
+day06a = findSignal 4
 
-day06b :: String -> Integer
-day06b = findSignal 14 "" 1
+day06b :: String -> Int
+day06b = findSignal 14
