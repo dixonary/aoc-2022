@@ -149,7 +149,6 @@ day05b = map head . Map.elems . uncurry (doMoves id)
 parse06 :: String -> String
 parse06 = id
 
-findSignal k cs n "" = n
 findSignal k cs n (x:xs)
   | x `elem` cs       = findSignal k (x : until (x `notElem`) init cs) (n+1) xs
   | length (x:cs) < k = findSignal k (x:cs) (n+1) xs
