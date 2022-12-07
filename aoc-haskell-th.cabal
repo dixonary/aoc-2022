@@ -18,7 +18,9 @@ executable aoc
         finite-typelits,
         text,
         attoparsec,
-        parser-combinators
+        parser-combinators,
+        filepath,
+        pretty-simple
         
     other-modules:
         Aoc

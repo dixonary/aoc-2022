@@ -30,6 +30,7 @@ import Control.Applicative.Combinators
 import Data.Char (isUpper)
 import Utils.Parsers
 
+import Data.Ord
 import Data.Functor
 import Data.Foldable
 import Data.Function 
@@ -37,6 +38,11 @@ import Control.Applicative
 
 import Data.Maybe
 
+import System.FilePath
+
+import Debug.Trace
+
+import Text.Pretty.Simple
 
 --------------------------------------------------------------------------------
 -- Utilibobs
@@ -44,6 +50,8 @@ import Data.Maybe
 both :: (a -> b) -> (a,a) -> (b,b)
 both f (x,y) = (f x, f y)
 
+takeToEnd :: From Text a => Parser a
+takeToEnd = (from <$> takeTill (=='\n')) <* (void (char '\n') <|> endOfInput)
 
 --------------------------------------------------------------------------------
 -- DAY 1
@@ -56,7 +64,6 @@ day01a = head
 
 day01b :: [Integer] -> Integer
 day01b = sum . take 3
-
 
 --------------------------------------------------------------------------------
 -- DAY 2
@@ -75,7 +82,6 @@ day02a = sum . map (\(x,y) -> getFinite y + 1 + getFinite (y-x+1) * 3)
 
 day02b :: [(RPS,RPS)] -> Integer
 day02b = sum . map (\(x,y) -> getFinite (x+y-1) + 1 + getFinite y * 3)
-
 
 --------------------------------------------------------------------------------
 -- DAY 3
@@ -102,7 +108,6 @@ day03b :: [Rucksack] -> Integer
 day03b = sum . map (priority . Set.findMin . foldr1 Set.intersection) 
        . chunksOf 3 . map (uncurry (<>))
 
-
 --------------------------------------------------------------------------------
 -- DAY 4
 
@@ -116,7 +121,6 @@ day04a = length . filter
 day04b :: [((Integer,Integer),(Integer,Integer))] -> Int
 day04b = length . filter 
   (\((a,b),(x,y)) -> (a>=x&&a<=y) || (b>=x&&b<=y) || (a<=x&&b>=y))
-
 
 --------------------------------------------------------------------------------
 -- DAY 5
@@ -160,3 +164,62 @@ day06a = findSignal 4
 
 day06b :: Text -> Int
 day06b = findSignal 14
+
+--------------------------------------------------------------------------------
+-- DAY 7
+
+data FSNode = File Integer | Dir [String] deriving (Show)
+type FS = Map FilePath FSNode
+
+addEntry :: FilePath -> FSNode -> FSNode
+addEntry s (Dir ns) = Dir (nub $ s:ns)
+
+isDir :: FSNode -> Bool
+isDir = \case { Dir _ -> True; _ -> False }
+
+getSize :: FS -> FSNode -> Integer
+getSize fs (File n) = n
+getSize fs (Dir ns) = sum $ map (getSize fs . (fs Map.!)) ns
+
+
+parse07 :: Parser FS
+parse07 = do
+  takeToEnd @Text
+
+  let 
+    addChild :: String -> FS -> (FilePath,FSNode) -> FS
+    addChild fp fs (n,node) = fs 
+      & Map.insert (fp </> n) node
+      & Map.adjust (addEntry (fp </> n)) fp
+
+    parseCommand :: FilePath -> FS -> Parser FS
+    parseCommand currentNode fs = goUp <|> enterDir <|> ls <|> done
+      where
+        done = endOfInput $> fs
+        goUp = "$ cd ..\n" *> parseCommand (takeDirectory currentNode) fs
+        enterDir = do
+          "$ cd "
+          name <- takeToEnd
+          parseCommand (currentNode </> name) fs
+        ls = do
+          "$ ls\n"
+          nodes <- many $
+                 (do "dir "           ; n <- takeToEnd; pure $ (n,Dir []))
+             <|> (do s <- decimal; " "; n <- takeToEnd; pure $ (n,File s))
+          parseCommand currentNode $ foldl' (addChild currentNode) fs nodes
+
+  parseCommand "/" $ Map.singleton "/" (Dir [])
+
+day07a :: FS -> Integer
+day07a fs = sum $ Map.filter (<=100000) 
+          $ Map.map (getSize fs) $ Map.filter isDir fs
+
+day07b :: FS -> Integer
+day07b fs = let
+  usedSpace = getSize fs $ fs Map.! "/"
+  freeSpace = 70000000 - usedSpace
+  needToFree = 30000000 - freeSpace
+
+  in minimum 
+    $ Map.elems $ Map.filter (>= needToFree) 
+    $ Map.map (getSize fs) $ Map.filter isDir fs
