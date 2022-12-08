@@ -28,9 +28,11 @@ import Data.Attoparsec.Text hiding (take, sepBy, sepBy1, count)
 import Control.Applicative.Combinators
     ( (<|>), count, sepBy, sepBy1 )
 import Data.Char (isUpper)
-import Utils.Parsers
+import Utils.Parsers as P
+import Utils.Utils as U
 
 import Data.Ord
+import Data.Bifunctor
 import Data.Functor
 import Data.Foldable
 import Data.Function 
@@ -168,7 +170,7 @@ day06b = findSignal 14
 --------------------------------------------------------------------------------
 -- DAY 7
 
-data FSNode = File Integer | Dir [String] deriving (Show)
+data FSNode = File Integer | Dir [FilePath] deriving (Show)
 type FS = Map FilePath FSNode
 
 addEntry :: FilePath -> FSNode -> FSNode
@@ -223,3 +225,34 @@ day07b fs = let
   in minimum 
     $ Map.elems $ Map.filter (>= needToFree) 
     $ Map.map (getSize fs) $ Map.filter isDir fs
+
+--------------------------------------------------------------------------------
+-- DAY 8
+
+parse08 = coordinateParser (Just . read @Integer . List.singleton) 0
+
+day08a :: Map (Int, Int) Integer -> Int
+day08a m = let
+  (l,r,t,b) = mapBoundingBox m
+
+  passesX = [[(x,y) | x <- l `to` r] | y <- t `to` b]
+  passesY = [[(x,y) | y <- t `to` b] | x <- l `to` r]
+
+  allPasses = [passesX, map reverse passesX, passesY, map reverse passesY]
+
+  markVis (m,k) p = let (h,_) = m Map.! p in 
+    if h > k then (Map.adjust (second (const True)) p m, h) 
+    else          (m,k)
+
+  in foldl' (\m pss -> foldl' (\m ps -> fst $ foldl' markVis (m,-1) ps) m pss) (Map.map (,False) m) allPasses & Map.elems & filter snd & length
+
+day08b :: Map (Int, Int) Integer -> Int
+day08b m = let
+  scenicScore p = product $ map (score p) [(-1,0),(1,0),(0,-1),(0,1)]
+    where 
+      h = m Map.! p
+      score p d = case Map.lookup (p |+| d) m of
+        Just k | k < h  -> 1 + score (p |+| d) d
+        Just k          -> 1 -- tall tree
+        _               -> 0 -- out of bounds
+  in maximum $ map scenicScore $ Map.keys m
