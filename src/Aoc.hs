@@ -244,7 +244,10 @@ day08a m = let
     if h > k then (Map.adjust (second (const True)) p m, h) 
     else          (m,k)
 
-  in foldl' (\m pss -> foldl' (\m ps -> fst $ foldl' markVis (m,-1) ps) m pss) (Map.map (,False) m) allPasses & Map.elems & filter snd & length
+  in m
+    & Map.map (,False)
+    & foldl' (foldl' (\m -> fst . foldl' markVis (m,-1))) `flip` allPasses
+    & Map.elems & filter snd & length
 
 day08b :: Map (Int, Int) Integer -> Int
 day08b m = let
