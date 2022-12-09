@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE MultiWayIf #-}
 module Aoc where
 
 import Prelude hiding (takeWhile)
@@ -235,9 +236,8 @@ day08a :: Map (Int, Int) Integer -> Int
 day08a m = let
   (l,r,t,b) = mapBoundingBox m
 
-  passesX = [[(x,y) | x <- l `to` r] | y <- t `to` b]
-  passesY = [[(x,y) | y <- t `to` b] | x <- l `to` r]
-
+  passesX   = [[(x,y) | x <- l `to` r] | y <- t `to` b]
+  passesY   = [[(x,y) | y <- t `to` b] | x <- l `to` r]
   allPasses = [passesX, map reverse passesX, passesY, map reverse passesY]
 
   markVis (m,k) p = let (h,_) = m Map.! p in 
@@ -259,3 +259,26 @@ day08b m = let
         Just k          -> 1 -- tall tree
         _               -> 0 -- out of bounds
   in maximum $ map scenicScore $ Map.keys m
+
+--------------------------------------------------------------------------------
+-- DAY 9
+
+parse09 :: Parser [(Int,Int)]
+parse09 = fmap (List.scanl' (|+|) (0,0) . concat) 
+        $  (`sepBy` "\n") 
+        $  flip List.replicate
+       <$> choice ["U"$>(0,-1),"D"$>(0,1),"L"$>(-1,0),"R"$>(1,0)]
+       <*> (space *> decimal)
+
+catchup :: (Int,Int) -> (Int,Int) -> (Int,Int)
+catchup h t = let (dx,dy) = h |-| t in t |+|
+  if abs dx < 2 && abs dy < 2 
+    then (0,0)
+    else (signum dx, signum dy)
+
+day09a :: [(Int,Int)] -> Int
+day09a = length . nub . List.scanl' (flip catchup) (0,0)
+
+day09b :: [(Int,Int)] -> Int
+day09b = length . nub . map last . List.scanl' updateWorm (replicate 9 (0,0))
+  where updateWorm ts h = tail $ List.scanl' catchup h ts

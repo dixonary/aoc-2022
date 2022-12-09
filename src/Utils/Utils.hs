@@ -71,3 +71,12 @@ to x y
 
 (|+|) :: (Int, Int) -> (Int, Int) -> (Int, Int)
 (x, y) |+| (u, v) = (x+u, y+v)
+
+(|-|) :: (Int, Int) -> (Int, Int) -> (Int, Int)
+(x, y) |-| (u, v) = (x-u, y-v)
+
+(|*|) :: (Int,Int) -> Int -> (Int,Int)
+(x,y) |*| k = (k*x, k*y)
+
+diff :: Num a => a -> a -> a
+x `diff` y = abs $ x - y
