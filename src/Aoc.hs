@@ -40,6 +40,7 @@ import Data.Function
 import Control.Applicative
 
 import Data.Maybe
+import Data.Bool
 
 import System.FilePath
 
@@ -270,6 +271,7 @@ parse09 = fmap (List.scanl' (|+|) (0,0) . concat)
        <$> choice ["U"$>(0,-1),"D"$>(0,1),"L"$>(-1,0),"R"$>(1,0)]
        <*> (space *> decimal)
 
+
 catchup :: (Int,Int) -> (Int,Int) -> (Int,Int)
 catchup h t = let (dx,dy) = h |-| t in t |+|
   if abs dx < 2 && abs dy < 2 
@@ -282,3 +284,23 @@ day09a = length . nub . List.scanl' (flip catchup) (0,0)
 day09b :: [(Int,Int)] -> Int
 day09b = length . nub . map last . List.scanl' updateWorm (replicate 9 (0,0))
   where updateWorm ts h = tail $ List.scanl' catchup h ts
+
+--------------------------------------------------------------------------------
+-- DAY 10 🎂
+
+parse10 :: Parser [(Int,Int)]
+parse10 = ((2,) <$> ("addx " *> signed decimal) <|> "noop" $> (1,0) ) 
+    `sepBy` endOfLine
+
+xsums :: [(Int,Int)] -> [Int]
+xsums is = List.scanl' (+) 1 
+  $ concatMap (\(x,n) -> replicate (x-1) 0 ++ [n]) $ is
+
+day10a :: [(Int,Int)] -> Int
+day10a is = sum $ (\n -> n * (xsums is !! n)) <$> [20,60,100,140,180,220]
+
+day10b :: [(Int,Int)] -> [String]
+day10b is = chunksOf 40
+  $ zipWith (\n x -> bool ' ' '█' $ abs (n`mod`40 - x) < 2) [0..239] (xsums is) 
+
+instance From [String] String where from = List.concatMap ('\n':)

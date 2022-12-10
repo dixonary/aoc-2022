@@ -80,3 +80,6 @@ to x y
 
 diff :: Num a => a -> a -> a
 x `diff` y = abs $ x - y
+
+(!@) :: (Ord k, Monoid a) => Map k a -> k -> a
+m !@ k = maybe mempty id $ Map.lookup k m
