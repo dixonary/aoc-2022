@@ -325,7 +325,7 @@ instance From [String] String where from = List.concatMap ('\n':)
 --------------------------------------------------------------------------------
 -- DAY 11
 
-type Monkey = (Seq Integer, (Integer -> Integer), Integer, Int, Int)
+type Monkey = (Seq Int, (Int -> Int), Int, Int, Int)
 
 parse11 :: Parser (Map Int Monkey)
 parse11 = fmap (Map.fromList . zip [0..]) $ (`sepBy` "\n\n") $ do
@@ -334,12 +334,12 @@ parse11 = fmap (Map.fromList . zip [0..]) $ (`sepBy` "\n\n") $ do
   
   skipSpace *> "Operation: new = "
   lhs <- choice [ const <$> decimal, "old" $> id  ]
-  bop <- choice [ " * " $> (*)     , " + " $> (+) ]
+  bop <- choice [ " * "  $> (*)    , " + " $> (+) ]
   rhs <- choice [ const <$> decimal, "old" $> id  ]
 
   (ns, liftA2 bop lhs rhs,,,) <$> nextInt <*> nextInt <*> nextInt
 
-computeMonkeys :: Int -> Integer -> Map Int Monkey -> Integer
+computeMonkeys :: Int -> Int -> Map Int Monkey -> Int
 computeMonkeys nRounds wf ms = runST $ do
   ns <- Vector.thaw $ Vector.fromList $ map (\(a,_,_,_,_) -> a) $ Map.elems ms
   is <- MVector.replicate (length ms) 0
@@ -366,8 +366,8 @@ computeMonkeys nRounds wf ms = runST $ do
   product . take 2 . List.sortOn negate . toList <$> Vector.freeze is
 
 
-day11a :: Map Int Monkey -> Integer
+day11a :: Map Int Monkey -> Int
 day11a = computeMonkeys 20 3
     
-day11b :: Map Int Monkey -> Integer
+day11b :: Map Int Monkey -> Int
 day11b = computeMonkeys 10000 1
