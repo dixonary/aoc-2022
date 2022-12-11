@@ -4,7 +4,7 @@ import Prelude hiding (takeWhile)
 
 import Witch ( From(..) )
 
-import Data.Char (ord)
+import Data.Char
 
 
 import Data.Finite ( getFinite, Finite )
@@ -71,6 +71,9 @@ takeToEnd = (from <$> takeTill (=='\n')) <* (void (char '\n') <|> endOfInput)
 
 skipLine :: Parser ()
 skipLine = takeTill (=='\n') *> (void (char '\n') <|> endOfInput)
+
+nextUint = skipWhile (not.isNumber) *> decimal
+
 --------------------------------------------------------------------------------
 -- DAY 1
 
@@ -326,7 +329,7 @@ type Monkey = (Seq Integer, (Integer -> Integer), Integer, Int, Int)
 
 parse11 :: Parser (Map Int Monkey)
 parse11 = fmap (Map.fromList . zip [0..]) $ (`sepBy` "\n\n") $ do
-  skipLine *> skipSpace *> "Starting items: "
+  nextUint *> skipWhile (not.isNumber)
   ns <- Seq.fromList <$> decimal `sepBy` ", "
   
   skipSpace *> "Operation: new = "
@@ -335,9 +338,9 @@ parse11 = fmap (Map.fromList . zip [0..]) $ (`sepBy` "\n\n") $ do
   rhs <- choice [ const <$> decimal, "old" $> id  ]
   let op = liftA2 bop lhs rhs
 
-  m  <- skipSpace *> "Test: divisible by "        *> decimal
-  m1 <- skipSpace *> "If true: throw to monkey "  *> decimal
-  m2 <- skipSpace *> "If false: throw to monkey " *> decimal
+  m  <- nextUint
+  m1 <- nextUint
+  m2 <- nextUint
 
   return (ns, op, m, m1, m2)
 
