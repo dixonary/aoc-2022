@@ -326,22 +326,18 @@ type Monkey = (Seq Integer, (Integer -> Integer), Integer, Int, Int)
 
 parse11 :: Parser (Map Int Monkey)
 parse11 = fmap (Map.fromList . zip [0..]) $ (`sepBy` "\n\n") $ do
-  skipLine 
-  skipSpace
-  "Starting items: "
+  skipLine *> skipSpace *> "Starting items: "
   ns <- Seq.fromList <$> decimal `sepBy` ", "
-  skipSpace
-  "Operation: new = "
+  
+  skipSpace *> "Operation: new = "
   lhs <- choice [ const <$> decimal, "old" $> id  ]
   bop <- choice [ " * " $> (*)     , " + " $> (+) ]
   rhs <- choice [ const <$> decimal, "old" $> id  ]
   let op = liftA2 bop lhs rhs
-  skipSpace
-  m <- "Test: divisible by " *> decimal
-  skipSpace
-  m1 <- "If true: throw to monkey " *> decimal
-  skipSpace
-  m2 <- "If false: throw to monkey " *> decimal
+
+  m  <- skipSpace *> "Test: divisible by "        *> decimal
+  m1 <- skipSpace *> "If true: throw to monkey "  *> decimal
+  m2 <- skipSpace *> "If false: throw to monkey " *> decimal
 
   return (ns, op, m, m1, m2)
 
