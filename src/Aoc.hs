@@ -1,6 +1,3 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE BlockArguments #-}
-{-# LANGUAGE MultiWayIf #-}
 module Aoc where
 
 import Prelude hiding (takeWhile)
@@ -25,6 +22,16 @@ import Data.Map (Map)
 import Data.Text qualified as Text
 import Data.Text (Text)
 
+import Data.Vector qualified as Vector
+import Data.Vector (Vector)
+
+import Data.Vector.Mutable qualified as MVector
+import Data.Vector.Mutable (MVector)
+
+import Data.Sequence qualified as Seq
+import Data.Sequence (Seq, (|>), (<|), ViewL(..))
+
+
 import Data.Attoparsec.Text hiding (take, sepBy, sepBy1, count)
 import Control.Applicative.Combinators
     ( (<|>), count, sepBy, sepBy1 )
@@ -38,6 +45,9 @@ import Data.Functor
 import Data.Foldable
 import Data.Function 
 import Control.Applicative
+import Control.Monad
+import Control.Monad.ST
+import Control.Monad.Loops
 
 import Data.Maybe
 import Data.Bool
@@ -48,6 +58,8 @@ import Debug.Trace
 
 import Text.Pretty.Simple
 
+import Text.Show.Functions
+
 --------------------------------------------------------------------------------
 -- Utilibobs
 
@@ -57,6 +69,8 @@ both f (x,y) = (f x, f y)
 takeToEnd :: From Text a => Parser a
 takeToEnd = (from <$> takeTill (=='\n')) <* (void (char '\n') <|> endOfInput)
 
+skipLine :: Parser ()
+skipLine = takeTill (=='\n') *> (void (char '\n') <|> endOfInput)
 --------------------------------------------------------------------------------
 -- DAY 1
 
@@ -304,3 +318,62 @@ day10b is = chunksOf 40
   $ zipWith (\n x -> bool ' ' '█' $ abs (n`mod`40 - x) < 2) [0..239] (xsums is) 
 
 instance From [String] String where from = List.concatMap ('\n':)
+
+--------------------------------------------------------------------------------
+-- DAY 11
+
+type Monkey = (Seq Integer, (Integer -> Integer), Integer, Int, Int)
+
+parse11 :: Parser (Map Int Monkey)
+parse11 = fmap (Map.fromList . zip [0..]) $ (`sepBy` "\n\n") $ do
+  skipLine 
+  skipSpace
+  "Starting items: "
+  ns <- Seq.fromList <$> decimal `sepBy` ", "
+  skipSpace
+  "Operation: new = "
+  lhs <- choice [ const <$> decimal, "old" $> id  ]
+  bop <- choice [ " * " $> (*)     , " + " $> (+) ]
+  rhs <- choice [ const <$> decimal, "old" $> id  ]
+  let op = liftA2 bop lhs rhs
+  skipSpace
+  m <- "Test: divisible by " *> decimal
+  skipSpace
+  m1 <- "If true: throw to monkey " *> decimal
+  skipSpace
+  m2 <- "If false: throw to monkey " *> decimal
+
+  return (ns, op, m, m1, m2)
+
+computeMonkeys :: Int -> Integer -> Map Int Monkey -> Integer
+computeMonkeys nRounds wf ms = runST $ do
+  ns <- Vector.thaw $ Vector.fromList $ map (\(a,_,_,_,_) -> a) $ Map.elems ms
+  is <- MVector.replicate (length ms) 0
+  
+  let 
+    allMods = product $ map (\(_,_,m,_,_) -> m) $ Map.elems ms
+
+    runRound = forM_ [0..length ms-1] \n -> do
+      let (_,op,m,m1,m2) = ms Map.! n
+      -- Ends if the current monkey is out of elements, otherwise iterates
+      fix \go -> Seq.viewl <$> MVector.read ns n >>= \case
+        EmptyL -> pure ()
+        h :< t -> do
+          MVector.modify is succ n
+          MVector.write ns n t
+          let 
+            h' = op h `div` wf `mod` allMods
+            n' = if h' `mod` m == 0 then m1 else m2 
+          MVector.modify ns (|> h') n'
+          go
+
+  replicateM nRounds runRound
+
+  product . take 2 . List.sortOn negate . toList <$> Vector.freeze is
+
+
+day11a :: Map Int Monkey -> Integer
+day11a = computeMonkeys 20 3
+    
+day11b :: Map Int Monkey -> Integer
+day11b = computeMonkeys 10000 1

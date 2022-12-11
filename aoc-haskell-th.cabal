@@ -20,7 +20,10 @@ executable aoc
         attoparsec,
         parser-combinators,
         filepath,
-        pretty-simple
+        pretty-simple,
+        vector,
+        stm,
+        monad-loops
         
     other-modules:
         Aoc
@@ -46,3 +49,9 @@ executable aoc
         UndecidableInstances,
         MonoLocalBinds,
         ImportQualifiedPost
+        DataKinds,
+        BlockArguments,
+        MultiWayIf,
+        ParallelListComp,
+        ScopedTypeVariables,
+        NoMonomorphismRestriction
