@@ -72,7 +72,7 @@ takeToEnd = (from <$> takeTill (=='\n')) <* (void (char '\n') <|> endOfInput)
 skipLine :: Parser ()
 skipLine = takeTill (=='\n') *> (void (char '\n') <|> endOfInput)
 
-nextUint = skipWhile (not.isNumber) *> decimal
+nextInt = skipWhile (notInClass "0123456789-") *> signed decimal
 
 --------------------------------------------------------------------------------
 -- DAY 1
@@ -329,20 +329,15 @@ type Monkey = (Seq Integer, (Integer -> Integer), Integer, Int, Int)
 
 parse11 :: Parser (Map Int Monkey)
 parse11 = fmap (Map.fromList . zip [0..]) $ (`sepBy` "\n\n") $ do
-  nextUint *> skipWhile (not.isNumber)
+  nextInt *> skipWhile (not.isNumber)
   ns <- Seq.fromList <$> decimal `sepBy` ", "
   
   skipSpace *> "Operation: new = "
   lhs <- choice [ const <$> decimal, "old" $> id  ]
   bop <- choice [ " * " $> (*)     , " + " $> (+) ]
   rhs <- choice [ const <$> decimal, "old" $> id  ]
-  let op = liftA2 bop lhs rhs
 
-  m  <- nextUint
-  m1 <- nextUint
-  m2 <- nextUint
-
-  return (ns, op, m, m1, m2)
+  (ns, liftA2 bop lhs rhs,,,) <$> nextInt <*> nextInt <*> nextInt
 
 computeMonkeys :: Int -> Integer -> Map Int Monkey -> Integer
 computeMonkeys nRounds wf ms = runST $ do
