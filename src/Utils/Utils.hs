@@ -83,3 +83,8 @@ x `diff` y = abs $ x - y
 
 (!@) :: (Ord k, Monoid a) => Map k a -> k -> a
 m !@ k = maybe mempty id $ Map.lookup k m
+
+
+-- Repeat an operation until the inputs do not change
+converge :: Eq a => (a -> a) -> a -> a
+converge = until =<< ((==) =<<)

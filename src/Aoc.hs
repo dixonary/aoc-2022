@@ -51,6 +51,7 @@ import Control.Monad.Loops
 
 import Data.Maybe
 import Data.Bool
+import Data.Tuple
 
 import System.FilePath
 
@@ -371,3 +372,44 @@ day11a = computeMonkeys 20 3
     
 day11b :: Map Int Monkey -> Int
 day11b = computeMonkeys 10000 1
+
+--------------------------------------------------------------------------------
+-- DAY 12
+
+parse12 :: Parser (Map (Int,Int) Char)
+parse12 = coordinateParser (Just) 0
+
+flood :: Map (Int, Int) Char 
+      -> (Int,Int) -- coord from which paths are measured
+      -> Map (Int,Int) Int
+flood m end = flood' 0 (Map.empty, Set.singleton end)
+  where 
+  flood' k (fm, frontier)
+    | Set.null frontier = fm
+    | otherwise         = let
+        frontier' = Set.fromList [
+          y
+          | x <- Set.elems frontier
+          , dx <- [(-1,0),(1,0),(0,-1),(0,1)]
+          , let y = x |-| dx
+          , Just ky <- [Map.lookup y m]
+          , Just kx <- [Map.lookup x m]
+          ,    (kx == 'E' && ky == 'z') 
+            || (ky == 'S')
+            || (kx /= 'E' && ord kx - ord ky <= 1)
+          ] Set.\\ Map.keysSet fm'
+        fm' :: Map (Int,Int) Int
+        fm' = Set.foldl' (\m y -> Map.insert y k m) fm frontier
+        in flood' (k+1) (fm', frontier')
+
+day12a :: Map (Int,Int) Char -> Int
+day12a m = flood m endCoord Map.! startCoord
+  where
+    startCoord = fromJust $ lookup 'S' $ map swap $ Map.assocs m
+    endCoord   = fromJust $ lookup 'E' $ map swap $ Map.assocs m
+
+day12b :: Map (Int,Int) Char -> Int
+day12b m = minimum $ Map.restrictKeys (flood m endCoord) as
+  where
+    as       = Map.keysSet $ Map.filter (=='a') m
+    endCoord = fromJust $ lookup 'E' $ map swap $ Map.assocs m
