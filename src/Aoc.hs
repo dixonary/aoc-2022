@@ -34,7 +34,7 @@ import Data.Sequence (Seq, (|>), (<|), ViewL(..))
 
 import Data.Attoparsec.Text hiding (take, sepBy, sepBy1, count)
 import Control.Applicative.Combinators
-    ( (<|>), count, sepBy, sepBy1 )
+    ( (<|>), count, sepBy, sepBy1, between )
 import Data.Char (isUpper)
 import Utils.Parsers as P
 import Utils.Utils as U
@@ -413,3 +413,35 @@ day12b m = minimum $ Map.restrictKeys (flood m endCoord) as
   where
     as       = Map.keysSet $ Map.filter (=='a') m
     endCoord = fromJust $ lookup 'E' $ map swap $ Map.assocs m
+
+--------------------------------------------------------------------------------
+-- DAY 13
+
+data Packet = N Int | L [Packet]
+
+instance Eq Packet where 
+  N x == N y =    x  ==    y
+  N x == L y = [N x] ==    y
+  L x == N y =    x  == [N y]
+  L x == L y =    x  ==    y
+
+instance Ord Packet where
+  N x <= N y =    x  <=    y
+  L x <= L y =    x  <=    y
+  N x <= L y = [N x] <=    y
+  L x <= N y =    x  <= [N y]
+
+parse13 :: Parser [(Packet, Packet)]
+parse13 = packet `around` "\n" `sepBy` "\n\n" 
+  where packet =  N <$> decimal 
+              <|> L <$> between "[" "]" (packet `sepBy` ",")
+
+day13a :: [(Packet, Packet)] -> Int
+day13a = sum . map fst . filter (uncurry (<) . snd). zip [1..]
+
+day13b :: [(Packet, Packet)] -> Int
+day13b ps = product $ map (fromJust . flip List.elemIndex l) [da,db]
+  where
+    l = sort $ da : db : concatMap (\(a,b) -> [a,b]) ps
+    da = L [L [N 2]]
+    db = L [L [N 6]]
