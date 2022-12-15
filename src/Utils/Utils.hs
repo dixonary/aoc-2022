@@ -64,10 +64,10 @@ mapBoundingBox m =
     (minimum . fmap snd . Map.keys $ m)
     (maximum . fmap snd . Map.keys $ m)
 
-to :: (Num a,Ord a,Enum a) => a -> a -> [a]
-to x y 
-  | x >= y = [x..y]
-  | otherwise = [y,y-1..x]
+(...) :: (Num a,Ord a,Enum a) => a -> a -> [a]
+(...) x y 
+  | x <= y = [x..y]
+  | otherwise = [y..x]
 
 (|+|) :: (Int, Int) -> (Int, Int) -> (Int, Int)
 (x, y) |+| (u, v) = (x+u, y+v)

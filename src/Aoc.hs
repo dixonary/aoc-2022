@@ -47,6 +47,7 @@ import Data.Function
 import Control.Applicative
 import Control.Monad
 import Control.Monad.ST
+import Data.STRef
 import Control.Monad.Loops
 
 import Data.Maybe
@@ -255,8 +256,8 @@ day08a :: Map (Int, Int) Integer -> Int
 day08a m = let
   (l,r,t,b) = mapBoundingBox m
 
-  passesX   = [[(x,y) | x <- l `to` r] | y <- t `to` b]
-  passesY   = [[(x,y) | y <- t `to` b] | x <- l `to` r]
+  passesX   = [[(x,y) | x <- l ... r] | y <- t ... b]
+  passesY   = [[(x,y) | y <- t ... b] | x <- l ... r]
   allPasses = [passesX, map reverse passesX, passesY, map reverse passesY]
 
   markVis (m,k) p = let (h,_) = m Map.! p in 
@@ -445,3 +446,69 @@ day13b ps = product $ map (fromJust . flip List.elemIndex l) [da,db]
     l = sort $ da : db : concatMap (\(a,b) -> [a,b]) ps
     da = L [L [N 2]]
     db = L [L [N 6]]
+
+--------------------------------------------------------------------------------
+-- DAY 14
+
+parse14 :: Parser [[(Int,Int)]]
+parse14 = path `sepBy` "\n"
+  where
+    path = coord `sepBy` " -> "
+    coord = signed decimal `around` ","
+
+day14a :: [[(Int,Int)]] -> Int
+day14a ps = runST simulate
+  where
+    [l,t,r,b] = [minimum,maximum] <*> ([map fst, map snd] <&> ($ concat ps))
+
+    simulate :: forall s. ST s Int
+    simulate = do
+      world <- newSTRef Set.empty
+
+      let isFree (x,y) = Set.notMember (x,y) <$> readSTRef world
+          settle (x,y) = modifySTRef world $ Set.insert (x,y)
+
+          addSand (x,y) 
+            | x < l || x > r || y >= b = pure False
+            | otherwise                = do
+              w <- readSTRef world
+              if 
+                | (x  ,y+1) `Set.notMember` w -> addSand (x,y+1)
+                | (x-1,y+1) `Set.notMember` w -> addSand (x-1, y+1) 
+                | (x+1,y+1) `Set.notMember` w -> addSand (x+1, y+1)
+                | otherwise                   -> settle (x,y) >> pure True
+
+      -- Write the world
+      mapM settle [ (a,b) | p <- ps, ((x,y), (x',y')) <- zip p (tail p)
+                  , a <- x ... x', b <- y ... y' ]
+
+      -- Keep adding sand until addSand returns false (leaves the space)
+      length <$> whileM (addSand (500,0)) (pure ())   
+
+
+day14b :: [[(Int,Int)]] -> Int
+day14b ps = runST simulate
+  where
+    b = (+2) $ maximum $ map snd $ concat ps
+
+    simulate :: forall s. ST s Int
+    simulate = do
+      world <- newSTRef Set.empty
+      let isFree (x,y) = Set.notMember (x,y) <$> readSTRef world
+          settle (x,y) = modifySTRef world $ Set.insert (x,y)
+          
+          addSand (x,y) = do
+            w <- readSTRef world
+            if 
+              | y >= b - 1                  -> settle (x,y)
+              | (x  ,y+1) `Set.notMember` w -> addSand (x  , y+1)
+              | (x-1,y+1) `Set.notMember` w -> addSand (x-1, y+1) 
+              | (x+1,y+1) `Set.notMember` w -> addSand (x+1, y+1)
+              | otherwise                   -> settle (x,y)
+
+      -- Write the world
+      mapM settle [ (a,b) | p <- ps, ((x,y), (x',y')) <- zip p (tail p)
+                  , a <- x ... x', b <- y ... y' ]
+
+      -- Keep adding sand until (500,0) is no longer free
+      length <$> whileM (isFree (500,0)) (addSand (500,0))
